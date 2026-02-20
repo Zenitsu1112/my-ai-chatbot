@@ -2,169 +2,44 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="connect-src *; default-src * 'unsafe-inline' 'unsafe-eval';">
-    <title>AI Chat</title>
+    <title>AI Chat Test</title>
     <style>
-        body { font-family: Arial; max-width: 400px; margin: 50px auto; padding: 20px; background: #f5f5f5; }
-        .box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        input, button { padding: 12px; margin: 8px 0; width: 100%; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
-        button { background: #667eea; color: white; border: none; cursor: pointer; font-weight: bold; }
-        button:hover { background: #5568d3; }
-        #error { color: red; margin-top: 10px; display: none; padding: 10px; background: #fee; border-radius: 5px; }
-        #chat { border: 1px solid #ddd; height: 300px; overflow-y: auto; padding: 10px; margin: 10px 0; background: #fafafa; border-radius: 5px; }
-        .msg { margin: 8px 0; padding: 10px; border-radius: 8px; max-width: 85%; word-wrap: break-word; }
-        .user { background: #667eea; color: white; margin-left: auto; text-align: right; }
-        .bot { background: #e9e9e9; color: #333; }
-        #status { color: #666; font-size: 12px; margin-top: 5px; }
+        body { font-family: Arial; padding: 20px; max-width: 500px; margin: 0 auto; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        #out { border: 1px solid #ccc; padding: 10px; margin-top: 20px; min-height: 100px; white-space: pre-wrap; }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h2 style="text-align: center; color: #333;">🤖 AI Chat</h2>
-        
-        <div id="loginBox">
-            <p style="color: #666; text-align: center;">Enter password to continue</p>
-            <input type="password" id="pwdInput" value="1112" placeholder="Password">
-            <button onclick="login()">🔓 Unlock</button>
-            <div id="error">❌ Wrong password or connection error</div>
-            <div id="status"></div>
-        </div>
-        
-        <div id="chatBox" style="display:none">
-            <div id="chat"></div>
-            <input type="text" id="msgInput" placeholder="Type your message..." onkeypress="if(event.key==='Enter') sendMessage()">
-            <button onclick="sendMessage()">📤 Send</button>
-            <button onclick="location.reload()" style="background: #e74c3c; margin-top: 5px;">🚪 Logout</button>
-        </div>
-    </div>
+    <h2>AI Chat Test</h2>
+    <p>Password: <input type="text" id="p" value="1112"></p>
+    <p>Message: <input type="text" id="m" value="Hello"></p>
+    <button onclick="test()">SEND TEST REQUEST</button>
+    <div id="out">Click button to test...</div>
 
     <script>
-        // Configuration - DO NOT CHANGE
-        const API_URL = 'https://my-ai-chatbot.zenitsu11-nezuko12.workers.dev';
-        
-        // Global password storage
-        let currentPassword = '';
-        
-        // Debug: Log when script loads
-        console.log('✅ Script loaded successfully');
-        console.log('API_URL:', API_URL);
-        
-        // Login function - EXPLICIT POST
-        async function login() {
-            console.log('🔑 Login button clicked');
+        function test() {
+            const out = document.getElementById('out');
+            const pwd = document.getElementById('p').value;
+            const msg = document.getElementById('m').value;
             
-            const pwd = document.getElementById('pwdInput').value;
-            const errorDiv = document.getElementById('error');
-            const statusDiv = document.getElementById('status');
+            out.textContent = 'Sending POST request...\n';
             
-            errorDiv.style.display = 'none';
-            statusDiv.textContent = 'Connecting...';
-            
-            console.log('Password entered:', pwd);
-            
-            try {
-                // EXPLICIT POST REQUEST
-                const requestBody = {
-                    password: pwd,
-                    message: 'Hello test'
-                };
-                
-                console.log('Sending POST to:', API_URL);
-                console.log('Body:', JSON.stringify(requestBody));
-                
-                const response = await fetch(API_URL, {
-                    method: 'POST',  // EXPLICITLY POST
-                    mode: 'cors',    // EXPLICITLY CORS
-                    cache: 'no-cache',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(requestBody)
-                });
-                
-                console.log('Response received:', response.status);
-                
-                const responseText = await response.text();
-                console.log('Raw response:', responseText);
-                
-                if (!response.ok) {
-                    throw new Error('HTTP ' + response.status + ': ' + responseText);
-                }
-                
-                const data = JSON.parse(responseText);
-                console.log('Parsed data:', data);
-                
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-                
-                // Success!
-                currentPassword = pwd;
-                document.getElementById('loginBox').style.display = 'none';
-                document.getElementById('chatBox').style.display = 'block';
-                
-                addMessage('Bot', '✅ Connected! ' + (data.reply || 'How can I help you?'));
-                
-            } catch (err) {
-                console.error('❌ Login error:', err);
-                errorDiv.textContent = '❌ Error: ' + err.message;
-                errorDiv.style.display = 'block';
-                statusDiv.textContent = '';
-            }
+            fetch('https://my-ai-chatbot.zenitsu11-nezuko12.workers.dev', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({password: pwd, message: msg})
+            })
+            .then(r => {
+                out.textContent += 'Status: ' + r.status + '\n';
+                return r.text();
+            })
+            .then(t => {
+                out.textContent += 'Response:\n' + t;
+            })
+            .catch(e => {
+                out.textContent += 'ERROR: ' + e.message;
+            });
         }
-        
-        // Send message function
-        async function sendMessage() {
-            const input = document.getElementById('msgInput');
-            const text = input.value.trim();
-            
-            if (!text) return;
-            
-            addMessage('You', text);
-            input.value = '';
-            
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        password: currentPassword,
-                        message: text
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.reply) {
-                    addMessage('Bot', data.reply);
-                } else {
-                    addMessage('Bot', 'Error: ' + (data.error || 'Unknown error'));
-                }
-                
-            } catch (err) {
-                console.error('Send error:', err);
-                addMessage('Bot', '❌ Error: ' + err.message);
-            }
-        }
-        
-        // Add message to chat
-        function addMessage(sender, text) {
-            const chatDiv = document.getElementById('chat');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'msg ' + (sender === 'You' ? 'user' : 'bot');
-            msgDiv.textContent = sender + ': ' + text;
-            chatDiv.appendChild(msgDiv);
-            chatDiv.scrollTop = chatDiv.scrollHeight;
-        }
-        
-        // Auto-focus password on load
-        window.onload = function() {
-            document.getElementById('pwdInput').focus();
-            console.log('✅ Page loaded, ready for login');
-        };
     </script>
 </body>
 </html>
