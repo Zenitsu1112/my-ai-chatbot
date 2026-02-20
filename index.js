@@ -1,31 +1,33 @@
 // ==========================================
-// CONFIGURATION - CHANGE THESE VALUES
+// CONFIGURATION - CHANGE THESE VALUES!
 // ==========================================
 
-const PASSWORD = 'your-secret-password-123';  // CHANGE THIS!
-const GROQ_API_KEY = 'gsk_your_groq_key_here'; // CHANGE THIS!
+const PASSWORD = '1112';  // 🔴 CHANGE THIS TO YOUR PASSWORD
+const GROQ_API_KEY = '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'; // 🔴 CHANGE THIS TO YOUR GROQ API KEY
 
 // ==========================================
-// MAIN WORKER CODE
+// MAIN WORKER CODE - DO NOT MODIFY BELOW
 // ==========================================
 
 export default {
   async fetch(request, env, ctx) {
     
-    // Handle CORS preflight
+    // Handle CORS preflight requests
     if (request.method === 'OPTIONS') {
       return new Response(null, {
+        status: 204,
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'POST, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Max-Age': '86400',
         },
       });
     }
 
-    // Only accept POST
+    // Only accept POST requests
     if (request.method !== 'POST') {
-      return new Response(JSON.stringify({ error: 'Use POST' }), {
+      return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
         status: 405,
         headers: {
           'Content-Type': 'application/json',
@@ -35,13 +37,46 @@ export default {
     }
 
     try {
-      // Parse the request body
-      const body = await request.json();
+      // Parse request body
+      let body;
+      try {
+        body = await request.json();
+      } catch (e) {
+        return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+        });
+      }
+
       const { password, message } = body;
 
-      // Check password
+      // Validate input
+      if (!password || typeof password !== 'string') {
+        return new Response(JSON.stringify({ error: 'Password required' }), {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+        });
+      }
+
+      if (!message || typeof message !== 'string') {
+        return new Response(JSON.stringify({ error: 'Message required' }), {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+        });
+      }
+
+      // Check password (REAL security - server side)
       if (password !== PASSWORD) {
-        return new Response(JSON.stringify({ error: 'Wrong password' }), {
+        return new Response(JSON.stringify({ error: 'Unauthorized: Wrong password' }), {
           status: 401,
           headers: {
             'Content-Type': 'application/json',
@@ -60,19 +95,27 @@ export default {
         body: JSON.stringify({
           model: 'llama-3.3-70b-versatile',
           messages: [
-            { role: 'system', content: 'You are a helpful AI assistant.' },
+            { 
+              role: 'system', 
+              content: 'You are a helpful, friendly AI assistant. Provide clear, concise answers. If asked about coding, provide working examples.' 
+            },
             { role: 'user', content: message }
           ],
           temperature: 0.7,
-          max_tokens: 1000,
+          max_tokens: 2048,
+          top_p: 1,
         }),
       });
 
-      // Check if Groq request failed
+      // Handle Groq API errors
       if (!groqResponse.ok) {
-        const errorData = await groqResponse.text();
-        return new Response(JSON.stringify({ error: 'AI service error: ' + errorData }), {
-          status: 500,
+        const errorText = await groqResponse.text();
+        console.error('Groq API error:', errorText);
+        
+        return new Response(JSON.stringify({ 
+          error: `AI service error (${groqResponse.status}): ${errorText}` 
+        }), {
+          status: 502,
           headers: {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*',
@@ -81,9 +124,26 @@ export default {
       }
 
       const data = await groqResponse.json();
+      
+      // Validate response
+      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        return new Response(JSON.stringify({ error: 'Invalid AI response format' }), {
+          status: 502,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+        });
+      }
+
       const reply = data.choices[0].message.content;
 
-      return new Response(JSON.stringify({ reply }), {
+      // Return successful response
+      return new Response(JSON.stringify({ 
+        reply,
+        model: 'llama-3.3-70b-versatile',
+        timestamp: new Date().toISOString()
+      }), {
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
@@ -91,7 +151,11 @@ export default {
       });
 
     } catch (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
+      console.error('Worker error:', error);
+      
+      return new Response(JSON.stringify({ 
+        error: 'Internal server error: ' + error.message 
+      }), {
         status: 500,
         headers: {
           'Content-Type': 'application/json',
