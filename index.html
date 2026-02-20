@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My AI Chatbot</title>
+    <title>My Secure AI Chatbot</title>
     <style>
         * {
             margin: 0;
@@ -18,10 +18,11 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            padding: 20px;
         }
 
         .container {
-            width: 90%;
+            width: 100%;
             max-width: 500px;
             background: white;
             border-radius: 20px;
@@ -38,11 +39,13 @@
         .login-screen h1 {
             color: #333;
             margin-bottom: 10px;
+            font-size: 28px;
         }
 
         .login-screen p {
             color: #666;
             margin-bottom: 30px;
+            font-size: 14px;
         }
 
         .password-input {
@@ -70,6 +73,7 @@
             font-size: 16px;
             cursor: pointer;
             transition: transform 0.2s;
+            font-weight: 600;
         }
 
         .login-btn:hover {
@@ -80,6 +84,7 @@
             color: #e74c3c;
             margin-top: 10px;
             display: none;
+            font-size: 14px;
         }
 
         /* Chat Screen */
@@ -94,6 +99,35 @@
             color: white;
             padding: 20px;
             text-align: center;
+            position: relative;
+        }
+
+        .chat-header h2 {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid white;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
         }
 
         .chat-messages {
@@ -109,6 +143,13 @@
             padding: 12px 16px;
             border-radius: 18px;
             word-wrap: break-word;
+            animation: fadeIn 0.3s ease;
+            line-height: 1.4;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .user-message {
@@ -127,9 +168,21 @@
 
         .typing {
             display: none;
+            padding: 10px 20px;
             color: #666;
             font-style: italic;
-            padding: 10px;
+            font-size: 14px;
+        }
+
+        .typing-dots::after {
+            content: '';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
         }
 
         .chat-input-area {
@@ -138,14 +191,16 @@
             border-top: 1px solid #eee;
             display: flex;
             gap: 10px;
+            align-items: center;
         }
 
         .chat-input {
             flex: 1;
-            padding: 12px;
+            padding: 12px 20px;
             border: 2px solid #ddd;
             border-radius: 25px;
             font-size: 16px;
+            transition: border-color 0.3s;
         }
 
         .chat-input:focus {
@@ -162,7 +217,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: transform 0.2s;
+            transition: transform 0.2s, background 0.3s;
+            font-size: 18px;
+            flex-shrink: 0;
         }
 
         .send-btn {
@@ -175,7 +232,7 @@
             color: white;
         }
 
-        .send-btn:hover, .voice-btn:hover {
+        .voice-btn:hover, .send-btn:hover {
             transform: scale(1.1);
         }
 
@@ -189,39 +246,60 @@
             50% { transform: scale(1.1); }
         }
 
-        /* Simple voice indicator */
         .voice-status {
             text-align: center;
             color: #666;
-            font-size: 14px;
-            margin-top: 5px;
-            height: 20px;
+            font-size: 13px;
+            padding: 5px;
+            height: 25px;
+            background: #f9f9f9;
+        }
+
+        /* Scrollbar styling */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
     </style>
 </head>
 <body>
-    <!-- Login Screen -->
     <div class="container">
+        <!-- Login Screen -->
         <div class="login-screen" id="loginScreen">
-            <h1>🤖 AI Assistant</h1>
-            <p>Enter password to access your private chatbot</p>
-            <input type="password" class="password-input" id="passwordInput" placeholder="Enter password...">
-            <button class="login-btn" onclick="checkPassword()">Unlock</button>
-            <div class="error-msg" id="errorMsg">Wrong password! Try: password123</div>
+            <h1>🔐 Secure AI Chat</h1>
+            <p>Enter your password to access your private AI assistant</p>
+            <input type="password" class="password-input" id="passwordInput" placeholder="Enter password..." onkeypress="handleLoginKey(event)">
+            <button class="login-btn" onclick="login()">Unlock</button>
+            <div class="error-msg" id="errorMsg">Wrong password. Try again.</div>
         </div>
 
         <!-- Chat Screen -->
         <div class="chat-screen" id="chatScreen">
             <div class="chat-header">
-                <h2>Your AI Assistant</h2>
-                <p style="font-size: 14px; opacity: 0.9;">Powered by Puter.js</p>
+                <h2>🤖 AI Assistant</h2>
+                <p>Powered by Groq (Ultra-fast) • Voice Enabled</p>
+                <button class="logout-btn" onclick="logout()">Logout</button>
             </div>
             
             <div class="chat-messages" id="chatMessages">
-                <div class="message bot-message">Hello! I'm your AI assistant. How can I help you today?</div>
+                <div class="message bot-message">Hello! I'm your secure AI assistant. How can I help you today?</div>
             </div>
             
-            <div class="typing" id="typing">AI is thinking...</div>
+            <div class="typing" id="typing">
+                <span class="typing-dots">AI is thinking</span>
+            </div>
             
             <div class="voice-status" id="voiceStatus"></div>
             
@@ -233,31 +311,86 @@
         </div>
     </div>
 
-    <!-- Puter.js -->
-    <script src="https://js.puter.com/v2/"></script>
-    
     <script>
-        // Simple password (not secure, just visual)
-        const CORRECT_PASSWORD = 'password123';
+        // 🔴 IMPORTANT: Replace with your actual Cloudflare Worker URL
+        const API_URL = 'https://my-ai-chatbot.zenitsu11-nezuko12.workers.dev';
         
-        // Check if already logged in
-        if (localStorage.getItem('isLoggedIn') === 'true') {
-            showChat();
+        let currentPassword = '';
+
+        // Check if already logged in this session
+        if (sessionStorage.getItem('isLoggedIn') === 'true') {
+            currentPassword = sessionStorage.getItem('password') || '';
+            if (currentPassword) {
+                showChat();
+            }
         }
 
-        function checkPassword() {
-            const input = document.getElementById('passwordInput').value;
-            if (input === CORRECT_PASSWORD) {
-                localStorage.setItem('isLoggedIn', 'true');
-                showChat();
-            } else {
+        function handleLoginKey(event) {
+            if (event.key === 'Enter') login();
+        }
+
+        async function login() {
+            const input = document.getElementById('passwordInput').value.trim();
+            
+            if (!input) {
+                document.getElementById('errorMsg').textContent = 'Please enter a password';
                 document.getElementById('errorMsg').style.display = 'block';
+                return;
+            }
+
+            currentPassword = input;
+            
+            // Show loading state
+            const btn = document.querySelector('.login-btn');
+            const originalText = btn.textContent;
+            btn.textContent = 'Checking...';
+            btn.disabled = true;
+
+            try {
+                // Test password with a simple request
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        password: currentPassword,
+                        message: 'Hello'
+                    })
+                });
+
+                if (response.status === 401) {
+                    throw new Error('Wrong password');
+                }
+
+                if (!response.ok) {
+                    throw new Error('Server error');
+                }
+
+                // Success! Save to session
+                sessionStorage.setItem('isLoggedIn', 'true');
+                sessionStorage.setItem('password', currentPassword);
+                showChat();
+
+            } catch (error) {
+                document.getElementById('errorMsg').textContent = error.message === 'Wrong password' ? 'Wrong password. Try again.' : 'Connection error. Please try again.';
+                document.getElementById('errorMsg').style.display = 'block';
+                currentPassword = '';
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
             }
         }
 
         function showChat() {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('chatScreen').style.display = 'flex';
+            document.getElementById('chatInput').focus();
+        }
+
+        function logout() {
+            sessionStorage.removeItem('isLoggedIn');
+            sessionStorage.removeItem('password');
+            currentPassword = '';
+            location.reload();
         }
 
         // Chat functionality
@@ -267,33 +400,50 @@
             
             if (!message) return;
             
-            // Add user message
+            // Add user message to chat
             addMessage(message, 'user');
             input.value = '';
             
-            // Show typing
+            // Show typing indicator
             document.getElementById('typing').style.display = 'block';
-            
+            document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+
             try {
-                // Call Puter.ai
-                const response = await puter.ai.chat(message, {
-                    model: 'gpt-5-nano',  // Free model
-                    stream: false
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        password: currentPassword,
+                        message: message
+                    })
                 });
-                
-                // Hide typing
+
+                // Hide typing indicator
                 document.getElementById('typing').style.display = 'none';
-                
-                // Add bot response
-                addMessage(response, 'bot');
-                
-                // Speak the response
-                speak(response);
-                
+
+                if (response.status === 401) {
+                    alert('Session expired. Please login again.');
+                    logout();
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error('Server error');
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    addMessage('Sorry, I encountered an error: ' + data.error, 'bot');
+                } else {
+                    addMessage(data.reply, 'bot');
+                    speak(data.reply); // Voice output
+                }
+
             } catch (error) {
                 document.getElementById('typing').style.display = 'none';
-                addMessage('Sorry, I encountered an error. Please try again.', 'bot');
-                console.error(error);
+                addMessage('Connection error. Please check your internet and try again.', 'bot');
+                console.error('Error:', error);
             }
         }
 
@@ -301,92 +451,138 @@
             const messagesDiv = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${sender}-message`;
-            messageDiv.textContent = text;
+            
+            // Format code blocks if any
+            if (text.includes('```')) {
+                text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre style="background:#f4f4f4;padding:10px;border-radius:5px;overflow-x:auto;"><code>$2</code></pre>');
+                messageDiv.innerHTML = text;
+            } else {
+                messageDiv.textContent = text;
+            }
+            
             messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
         function handleKeyPress(event) {
-            if (event.key === 'Enter') {
-                sendMessage();
-            }
+            if (event.key === 'Enter') sendMessage();
         }
 
-        // Voice functionality (Text-to-Speech)
+        // Text-to-Speech (Voice Output)
         function speak(text) {
-            if ('speechSynthesis' in window) {
-                // Stop any current speech
-                window.speechSynthesis.cancel();
-                
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 1;
-                utterance.pitch = 1;
-                utterance.volume = 1;
-                
-                // Try to use a good voice
-                const voices = window.speechSynthesis.getVoices();
-                const goodVoice = voices.find(v => v.name.includes('Google') || v.name.includes('Samantha')) || voices[0];
-                if (goodVoice) utterance.voice = goodVoice;
-                
-                window.speechSynthesis.speak(utterance);
+            if (!('speechSynthesis' in window)) {
+                console.log('TTS not supported');
+                return;
             }
+
+            // Stop any current speech
+            window.speechSynthesis.cancel();
+
+            // Clean text for speech (remove code blocks)
+            const cleanText = text.replace(/```[\s\S]*?```/g, 'Code block omitted.').replace(/`([^`]+)`/g, '$1');
+
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            utterance.rate = 0.9;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+
+            // Try to get a good voice
+            const voices = window.speechSynthesis.getVoices();
+            const preferredVoice = voices.find(v => 
+                v.name.includes('Google US English') || 
+                v.name.includes('Samantha') ||
+                v.name.includes('Microsoft Zira') ||
+                v.name.includes('Female')
+            ) || voices.find(v => v.lang === 'en-US') || voices[0];
+
+            if (preferredVoice) {
+                utterance.voice = preferredVoice;
+            }
+
+            window.speechSynthesis.speak(utterance);
         }
 
-        // Voice input (Speech-to-Text)
+        // Speech-to-Text (Voice Input)
         let recognition = null;
         let isListening = false;
 
+        // Initialize speech recognition
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SpeechRecognition();
             recognition.continuous = false;
             recognition.interimResults = false;
             recognition.lang = 'en-US';
-            
+
+            recognition.onstart = function() {
+                isListening = true;
+                document.getElementById('voiceBtn').classList.add('listening');
+                document.getElementById('voiceStatus').textContent = '🎤 Listening... Speak now';
+            };
+
             recognition.onresult = function(event) {
                 const transcript = event.results[0][0].transcript;
                 document.getElementById('chatInput').value = transcript;
-                document.getElementById('voiceStatus').textContent = '';
+                document.getElementById('voiceStatus').textContent = '✓ Heard: "' + transcript + '"';
+                setTimeout(() => {
+                    document.getElementById('voiceStatus').textContent = '';
+                }, 2000);
                 sendMessage();
             };
-            
+
             recognition.onerror = function(event) {
-                document.getElementById('voiceStatus').textContent = 'Voice error. Try again.';
-                document.getElementById('voiceBtn').classList.remove('listening');
-                isListening = false;
+                let errorMsg = 'Voice error';
+                if (event.error === 'no-speech') errorMsg = 'No speech detected';
+                if (event.error === 'audio-capture') errorMsg = 'No microphone found';
+                if (event.error === 'not-allowed') errorMsg = 'Microphone permission denied';
+                
+                document.getElementById('voiceStatus').textContent = errorMsg;
+                stopListening();
             };
-            
+
             recognition.onend = function() {
-                document.getElementById('voiceBtn').classList.remove('listening');
-                isListening = false;
+                stopListening();
             };
         }
 
         function toggleVoice() {
             if (!recognition) {
-                alert('Voice input not supported in your browser. Try Chrome.');
+                alert('Voice input is not supported in your browser. Please use Chrome, Edge, or Safari.');
                 return;
             }
-            
+
             if (isListening) {
                 recognition.stop();
-                document.getElementById('voiceBtn').classList.remove('listening');
-                document.getElementById('voiceStatus').textContent = '';
-                isListening = false;
             } else {
-                recognition.start();
-                document.getElementById('voiceBtn').classList.add('listening');
-                document.getElementById('voiceStatus').textContent = 'Listening... Speak now';
-                isListening = true;
+                try {
+                    recognition.start();
+                } catch (e) {
+                    alert('Could not start voice recognition: ' + e.message);
+                }
+            }
+        }
+
+        function stopListening() {
+            isListening = false;
+            document.getElementById('voiceBtn').classList.remove('listening');
+            if (!document.getElementById('voiceStatus').textContent.includes('Heard')) {
+                document.getElementById('voiceStatus').textContent = '';
             }
         }
 
         // Load voices when available
         if ('speechSynthesis' in window) {
             window.speechSynthesis.onvoiceschanged = function() {
-                // Voices loaded
+                console.log('Voices loaded:', window.speechSynthesis.getVoices().length);
             };
+            // Trigger voice loading
+            window.speechSynthesis.getVoices();
         }
+
+        // Prevent accidental logout on page refresh
+        window.onbeforeunload = function() {
+            // Keep session active
+        };
     </script>
 </body>
 </html>
