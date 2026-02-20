@@ -1,6 +1,5 @@
 {
   "name": "my-ai-chatbot",
   "compatibility_date": "2026-02-20",
-  "main": "index.js",
-  "workers_dev": true
+  "main": "index.js"
 }
