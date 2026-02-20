@@ -212,30 +212,52 @@
             if (!input) return;
             
             currentPassword = input;
-            document.querySelector('.login-btn').textContent = 'Checking...';
+            const btn = document.querySelector('.login-btn');
+            btn.textContent = 'Checking...';
+            btn.disabled = true;
             
             try {
+                // FIXED: Proper POST request with method specified
                 const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password: currentPassword, message: 'test' })
+                    method: 'POST',  // <-- THIS WAS MISSING!
+                    headers: { 
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        password: currentPassword, 
+                        message: 'Hello' 
+                    })
                 });
                 
-                if (res.status === 401) throw new Error('Wrong password');
-                if (!res.ok) throw new Error('Server error');
+                if (res.status === 401) {
+                    throw new Error('Wrong password');
+                }
+                if (!res.ok) {
+                    const err = await res.text();
+                    throw new Error('Server error: ' + err);
+                }
+                
+                const data = await res.json();
                 
                 sessionStorage.setItem('isLoggedIn', 'true');
                 sessionStorage.setItem('password', currentPassword);
                 showChat();
+                
             } catch (e) {
+                console.error('Login error:', e);
+                document.getElementById('errorMsg').textContent = e.message || 'Connection failed';
                 document.getElementById('errorMsg').style.display = 'block';
-                document.querySelector('.login-btn').textContent = 'Unlock';
+                currentPassword = '';
+            } finally {
+                btn.textContent = 'Unlock';
+                btn.disabled = false;
             }
         }
 
         function showChat() {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('chatScreen').style.display = 'flex';
+            document.getElementById('chatInput').focus();
         }
 
         function logout() {
@@ -256,21 +278,32 @@
                 const res = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password: currentPassword, message: msg })
+                    body: JSON.stringify({ 
+                        password: currentPassword, 
+                        message: msg 
+                    })
                 });
                 
                 document.getElementById('typing').style.display = 'none';
                 
-                if (res.status === 401) { logout(); return; }
+                if (res.status === 401) { 
+                    alert('Session expired. Please login again.');
+                    logout(); 
+                    return; 
+                }
                 
                 const data = await res.json();
-                if (data.reply) {
+                
+                if (data.error) {
+                    addMessage('Error: ' + data.error, 'bot');
+                } else if (data.reply) {
                     addMessage(data.reply, 'bot');
                     speak(data.reply);
                 }
             } catch (e) {
                 document.getElementById('typing').style.display = 'none';
-                addMessage('Error: ' + e.message, 'bot');
+                addMessage('Connection error: ' + e.message, 'bot');
+                console.error(e);
             }
         }
 
@@ -279,7 +312,7 @@
             div.className = `message ${sender}-message`;
             div.textContent = text;
             document.getElementById('chatMessages').appendChild(div);
-            document.getElementById('chatMessages').scrollTop = 999999;
+            document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
         }
 
         function handleKeyPress(e) { if (e.key === 'Enter') sendMessage(); }
@@ -287,8 +320,10 @@
         function speak(text) {
             if (!window.speechSynthesis) return;
             window.speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance(text.replace(/```[\s\S]*?```/g, ''));
+            const cleanText = text.replace(/```[\s\S]*?```/g, 'Code block omitted.');
+            const u = new SpeechSynthesisUtterance(cleanText);
             u.rate = 0.9;
+            u.pitch = 1;
             window.speechSynthesis.speak(u);
         }
 
@@ -296,27 +331,43 @@
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SR();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+            
             recognition.onresult = e => {
-                document.getElementById('chatInput').value = e.results[0][0].transcript;
-                sendMessage();
+                const transcript = e.results[0][0].transcript;
+                document.getElementById('chatInput').value = transcript;
+                document.getElementById('voiceStatus').textContent = '✓ Heard: "' + transcript + '"';
+                setTimeout(() => sendMessage(), 100);
+            };
+            
+            recognition.onerror = e => {
+                document.getElementById('voiceStatus').textContent = 'Voice error: ' + e.error;
                 stopVoice();
             };
-            recognition.onerror = stopVoice;
+            
             recognition.onend = stopVoice;
         }
 
         function toggleVoice() {
-            if (!recognition) return alert('Voice not supported');
-            listening ? recognition.stop() : recognition.start();
-            listening = !listening;
-            document.getElementById('voiceBtn').classList.toggle('listening', listening);
-            document.getElementById('voiceStatus').textContent = listening ? '🎤 Listening...' : '';
+            if (!recognition) return alert('Voice not supported in this browser');
+            if (listening) {
+                recognition.stop();
+            } else {
+                recognition.start();
+                listening = true;
+                document.getElementById('voiceBtn').classList.add('listening');
+                document.getElementById('voiceStatus').textContent = '🎤 Listening... Speak now';
+            }
         }
 
         function stopVoice() {
             listening = false;
             document.getElementById('voiceBtn').classList.remove('listening');
-            document.getElementById('voiceStatus').textContent = '';
+            if (!document.getElementById('voiceStatus').textContent.includes('Heard')) {
+                document.getElementById('voiceStatus').textContent = '';
+            }
         }
     </script>
 </body>
