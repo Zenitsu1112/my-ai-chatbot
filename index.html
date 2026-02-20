@@ -2,43 +2,53 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>AI Chat Test</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <title>AI Chat</title>
     <style>
-        body { font-family: Arial; padding: 20px; max-width: 500px; margin: 0 auto; }
-        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
-        #out { border: 1px solid #ccc; padding: 10px; margin-top: 20px; min-height: 100px; white-space: pre-wrap; }
+        body { font-family: Arial; padding: 20px; max-width: 400px; margin: 0 auto; }
+        input, button { padding: 10px; margin: 5px 0; width: 100%; }
+        #out { border: 1px solid #ccc; padding: 10px; margin-top: 10px; min-height: 50px; }
     </style>
 </head>
 <body>
-    <h2>AI Chat Test</h2>
-    <p>Password: <input type="text" id="p" value="1112"></p>
-    <p>Message: <input type="text" id="m" value="Hello"></p>
-    <button onclick="test()">SEND TEST REQUEST</button>
-    <div id="out">Click button to test...</div>
+    <h2>AI Chat</h2>
+    <input type="password" id="p" value="1112" placeholder="Password">
+    <button onclick="go()">Connect</button>
+    <div id="out"></div>
 
     <script>
-        function test() {
+        // Add timestamp to prevent caching
+        const API = 'https://my-ai-chatbot.zenitsu11-nezuko12.workers.dev?_=' + Date.now();
+        
+        async function go() {
             const out = document.getElementById('out');
             const pwd = document.getElementById('p').value;
-            const msg = document.getElementById('m').value;
             
-            out.textContent = 'Sending POST request...\n';
+            out.textContent = 'Connecting...';
             
-            fetch('https://my-ai-chatbot.zenitsu11-nezuko12.workers.dev', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({password: pwd, message: msg})
-            })
-            .then(r => {
-                out.textContent += 'Status: ' + r.status + '\n';
-                return r.text();
-            })
-            .then(t => {
-                out.textContent += 'Response:\n' + t;
-            })
-            .catch(e => {
-                out.textContent += 'ERROR: ' + e.message;
-            });
+            try {
+                const res = await fetch(API, {
+                    method: 'POST',
+                    mode: 'cors',
+                    cache: 'no-store',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        password: pwd,
+                        message: 'Hello'
+                    })
+                });
+                
+                const text = await res.text();
+                out.textContent = 'Status: ' + res.status + '\n' + text;
+                
+            } catch(e) {
+                out.textContent = 'Error: ' + e.message;
+                console.error(e);
+            }
         }
     </script>
 </body>
