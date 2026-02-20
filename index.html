@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My AI Chatbot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 500px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        /* Login Screen */
+        .login-screen {
+            padding: 40px;
+            text-align: center;
+        }
+
+        .login-screen h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .login-screen p {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            transition: border-color 0.3s;
+        }
+
+        .password-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .error-msg {
+            color: #e74c3c;
+            margin-top: 10px;
+            display: none;
+        }
+
+        /* Chat Screen */
+        .chat-screen {
+            display: none;
+            height: 600px;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        .bot-message {
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .typing {
+            display: none;
+            color: #666;
+            font-style: italic;
+            padding: 10px;
+        }
+
+        .chat-input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            font-size: 16px;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .send-btn, .voice-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        .send-btn {
+            background: #667eea;
+            color: white;
+        }
+
+        .voice-btn {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .send-btn:hover, .voice-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .voice-btn.listening {
+            background: #27ae60;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* Simple voice indicator */
+        .voice-status {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+            height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div class="container">
+        <div class="login-screen" id="loginScreen">
+            <h1>🤖 AI Assistant</h1>
+            <p>Enter password to access your private chatbot</p>
+            <input type="password" class="password-input" id="passwordInput" placeholder="Enter password...">
+            <button class="login-btn" onclick="checkPassword()">Unlock</button>
+            <div class="error-msg" id="errorMsg">Wrong password! Try: password123</div>
+        </div>
+
+        <!-- Chat Screen -->
+        <div class="chat-screen" id="chatScreen">
+            <div class="chat-header">
+                <h2>Your AI Assistant</h2>
+                <p style="font-size: 14px; opacity: 0.9;">Powered by Puter.js</p>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot-message">Hello! I'm your AI assistant. How can I help you today?</div>
+            </div>
+            
+            <div class="typing" id="typing">AI is thinking...</div>
+            
+            <div class="voice-status" id="voiceStatus"></div>
+            
+            <div class="chat-input-area">
+                <button class="voice-btn" id="voiceBtn" onclick="toggleVoice()" title="Voice input">🎤</button>
+                <input type="text" class="chat-input" id="chatInput" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
+                <button class="send-btn" onclick="sendMessage()" title="Send">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Puter.js -->
+    <script src="https://js.puter.com/v2/"></script>
+    
+    <script>
+        // Simple password (not secure, just visual)
+        const CORRECT_PASSWORD = 'password123';
+        
+        // Check if already logged in
+        if (localStorage.getItem('isLoggedIn') === 'true') {
+            showChat();
+        }
+
+        function checkPassword() {
+            const input = document.getElementById('passwordInput').value;
+            if (input === CORRECT_PASSWORD) {
+                localStorage.setItem('isLoggedIn', 'true');
+                showChat();
+            } else {
+                document.getElementById('errorMsg').style.display = 'block';
+            }
+        }
+
+        function showChat() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('chatScreen').style.display = 'flex';
+        }
+
+        // Chat functionality
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message
+            addMessage(message, 'user');
+            input.value = '';
+            
+            // Show typing
+            document.getElementById('typing').style.display = 'block';
+            
+            try {
+                // Call Puter.ai
+                const response = await puter.ai.chat(message, {
+                    model: 'gpt-5-nano',  // Free model
+                    stream: false
+                });
+                
+                // Hide typing
+                document.getElementById('typing').style.display = 'none';
+                
+                // Add bot response
+                addMessage(response, 'bot');
+                
+                // Speak the response
+                speak(response);
+                
+            } catch (error) {
+                document.getElementById('typing').style.display = 'none';
+                addMessage('Sorry, I encountered an error. Please try again.', 'bot');
+                console.error(error);
+            }
+        }
+
+        function addMessage(text, sender) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            messageDiv.textContent = text;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // Voice functionality (Text-to-Speech)
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                // Stop any current speech
+                window.speechSynthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1;
+                utterance.pitch = 1;
+                utterance.volume = 1;
+                
+                // Try to use a good voice
+                const voices = window.speechSynthesis.getVoices();
+                const goodVoice = voices.find(v => v.name.includes('Google') || v.name.includes('Samantha')) || voices[0];
+                if (goodVoice) utterance.voice = goodVoice;
+                
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // Voice input (Speech-to-Text)
+        let recognition = null;
+        let isListening = false;
+
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+            
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('chatInput').value = transcript;
+                document.getElementById('voiceStatus').textContent = '';
+                sendMessage();
+            };
+            
+            recognition.onerror = function(event) {
+                document.getElementById('voiceStatus').textContent = 'Voice error. Try again.';
+                document.getElementById('voiceBtn').classList.remove('listening');
+                isListening = false;
+            };
+            
+            recognition.onend = function() {
+                document.getElementById('voiceBtn').classList.remove('listening');
+                isListening = false;
+            };
+        }
+
+        function toggleVoice() {
+            if (!recognition) {
+                alert('Voice input not supported in your browser. Try Chrome.');
+                return;
+            }
+            
+            if (isListening) {
+                recognition.stop();
+                document.getElementById('voiceBtn').classList.remove('listening');
+                document.getElementById('voiceStatus').textContent = '';
+                isListening = false;
+            } else {
+                recognition.start();
+                document.getElementById('voiceBtn').classList.add('listening');
+                document.getElementById('voiceStatus').textContent = 'Listening... Speak now';
+                isListening = true;
+            }
+        }
+
+        // Load voices when available
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = function() {
+                // Voices loaded
+            };
+        }
+    </script>
+</body>
+</html>
